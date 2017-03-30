@@ -1956,6 +1956,11 @@ class InstallersData(DataStore):
                             modInfo = modInfos[rpFile]
                             new_sizeCrcDate[rpFile] = (modInfo.size,
                                modInfo.cached_mod_crc(), modInfo.mtime, asFile)
+                            # path__crc = modInfo.getPath().crc
+                            # if path__crc != oCrc:
+                            #     print '%s cached' % rpFile, oCrc, 'real', \
+                            #         path__crc
+                            #     oCrc = path__crc
                             continue
                         except KeyError:
                             pass # corrupted/missing, let os.lstat decide
