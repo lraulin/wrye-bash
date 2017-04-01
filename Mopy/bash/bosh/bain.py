@@ -271,9 +271,17 @@ class Installer(object):
         self.archive = archive.stail
 
     def __getstate__(self):
-        """Used by pickler to save object state."""
+        """Used by pickler to save object state.""" ##: __reduce__ IS CALLED instead
         getter = object.__getattribute__
         return tuple(getter(self,x) for x in self.persistent)
+
+    def _fixme_drop__for_loading_in_previous_versions(self):# FIXME: DROP backwards compat !
+        self.src_sizeCrcDate = dict(
+            (GPath(x), y) for x, y in self.src_sizeCrcDate.iteritems())
+        self.dirty_sizeCrc = dict(# FIXME: backwards compat !
+            (GPath(x), y) for x, y in self.dirty_sizeCrc.iteritems())
+        self.fileSizeCrcs = [(unicode(x), y, z) for x, y, z in
+                             self.fileSizeCrcs]
 
     def __setstate__(self,values):
         """Used by unpickler to recreate object."""
@@ -1006,6 +1014,7 @@ class InstallerMarker(Installer):
 
     def __reduce__(self):
         from . import InstallerMarker as boshInstallerMarker
+        self._fixme_drop__for_loading_in_previous_versions()
         return boshInstallerMarker, (GPath(self.archive),), tuple(
             imap(self.__getattribute__, self.persistent))
 
@@ -1051,6 +1060,7 @@ class InstallerArchive(Installer):
 
     def __reduce__(self):
         from . import InstallerArchive as boshInstallerArchive
+        self._fixme_drop__for_loading_in_previous_versions()
         return boshInstallerArchive, (GPath(self.archive),), tuple(
             imap(self.__getattribute__, self.persistent))
 
@@ -1261,6 +1271,7 @@ class InstallerProject(Installer):
 
     def __reduce__(self):
         from . import InstallerProject as boshInstallerProject
+        self._fixme_drop__for_loading_in_previous_versions()
         return boshInstallerProject, (GPath(self.archive),), tuple(
             imap(self.__getattribute__, self.persistent))
 
@@ -1613,7 +1624,8 @@ class InstallersData(DataStore):
         """Saves to pickle file."""
         if self.hasChanged:
             self.dictFile.data['installers'] = self.data
-            self.dictFile.data['sizeCrcDate'] = self.data_sizeCrcDate
+            self.dictFile.data['sizeCrcDate'] = dict( # FIXME: backwards compat
+                (GPath(x), y) for x, y in self.data_sizeCrcDate.iteritems())
             self.dictFile.data['crc_installer'] = self.crc_installer
             self.dictFile.vdata['version'] = 1
             self.dictFile.save()
