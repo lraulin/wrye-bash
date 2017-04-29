@@ -279,7 +279,7 @@ def dump_environment(_wx, bolt):
         (u' - using %s' % bolt.Path.sys_fs_enc) if not fse else u'')
 
 # Main ------------------------------------------------------------------------
-def main(opts):
+def main(opts, fake_importer):
     # First of all set the language, set on importing bolt
     bass.language = opts.language
     import bolt # bass.language must be set
@@ -322,7 +322,7 @@ def main(opts):
     bolt.deprint (u'Searching for game to manage:')
     # set the Bash ini global in bass
     bashIni = bass.GetBashIni()
-    ret = bush.detect_and_set_game(opts.oblivionPath, bashIni)
+    ret = bush.detect_and_set_game(opts.oblivionPath, bashIni, fake_importer=fake_importer)
     if ret is not None: # None == success
         if len(ret) == 0:
             msgtext = _(

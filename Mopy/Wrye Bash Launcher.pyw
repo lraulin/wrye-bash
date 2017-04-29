@@ -31,6 +31,13 @@
 import imp, os, sys
 
 class UnicodeImporter(object):
+
+    def _check_imported(self, fullname): return fullname in sys.modules
+
+    def _get_imported(self, fullname): return sys.modules[fullname]
+
+    def _add_to_imported(self, fullname, mod): sys.modules[fullname] = mod
+
     def find_module(self,fullname,path=None):
         if isinstance(fullname,unicode):
             fullname = fullname.replace(u'.',u'\\')
@@ -45,10 +52,10 @@ class UnicodeImporter(object):
                 return self
 
     def load_module(self,fullname):
-        if fullname in sys.modules:
-            return sys.modules[fullname]
+        if self._check_imported(fullname):
+            return self._get_imported(fullname)
         else: # set to avoid reimporting recursively
-            sys.modules[fullname] = imp.new_module(fullname)
+            self._add_to_imported(fullname, imp.new_module(fullname))
         if isinstance(fullname,unicode):
             filename = fullname.replace(u'.',u'\\')
             ext = u'.py'
@@ -61,10 +68,10 @@ class UnicodeImporter(object):
             if os.path.exists(filename+ext):
                 with open(filename+ext,'U') as fp:
                     mod = imp.load_source(fullname,filename+ext,fp)
-                    sys.modules[fullname] = mod
+                    self._add_to_imported(fullname, mod)
                     mod.__loader__ = self
             else:
-                mod = sys.modules[fullname]
+                mod = self._get_imported(fullname)
                 mod.__loader__ = self
                 mod.__file__ = os.path.join(os.getcwd(),filename)
                 mod.__path__ = [filename]
@@ -80,10 +87,31 @@ class UnicodeImporter(object):
             print 'fail', filename+ext
             raise ImportError, u'caused by ' + repr(e), sys.exc_info()[2]
 
+class FakeUnicodeImporter(UnicodeImporter):
+
+    _modules_to_discard = set()
+
+    def _check_imported(self, fullname):
+        return fullname in sys.modules or fullname in self._modules_to_discard
+
+    # def _get_imported(self, fullname):
+    #     try:
+    #         return sys.modules[fullname]
+    #     except KeyError:
+    #         return self._modules_to_discard[fullname]
+
+    def _add_to_imported(self, fullname, mod):
+        super(FakeUnicodeImporter, self)._add_to_imported(fullname, mod)
+        self._modules_to_discard.add(fullname)
+
+    @classmethod
+    def cleanup(cls):
+        for m in cls._modules_to_discard: del sys.modules[m]
+
 if not hasattr(sys,'frozen'):
     sys.meta_path = [UnicodeImporter()]
 
 if __name__ == '__main__':
     from bash import bash, barg
     opts = barg.parse()
-    bash.main(opts)
+    bash.main(opts, FakeUnicodeImporter)
