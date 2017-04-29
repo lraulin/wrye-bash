@@ -3759,6 +3759,7 @@ class BashFrame(wx.Frame):
         #--Config helpers
         bosh.configHelpers.refreshBashTags()
         #--Check bsas, needed to detect string files in modInfos refresh...
+        bosh.oblivionIni.get_ini_language(cached=False) # reread ini language
         if not booting and bosh.bsaInfos.refresh():
             popBsas = 'ALL'
         #--Check plugins.txt and mods directory...
