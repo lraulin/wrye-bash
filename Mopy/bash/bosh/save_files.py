@@ -31,6 +31,7 @@
 __author__ = 'Utumno'
 
 import itertools
+import StringIO
 import struct
 import sys
 from collections import OrderedDict
@@ -120,6 +121,49 @@ class SaveFileHeader(object):
             raise SaveHeaderError(
                 u'Save game masters size (%i) not as expected (%i).' % (
                     ins.tell() - self._mastersStart - 4, mastersSize))
+
+    def _decompress_masters_sse(self, ins): # for skyrim special edition
+        """Read the start of the LZ4 compressed data in the SSE savefile and
+        stop when the whole master table is found.
+        Return a file-like object that can be read by _load_masters_16
+        containing the now decompressed master table."""
+        def _read_lisc_int():
+            result = 0
+            for _ in xrange(20):
+                num = unpack_byte(ins)
+                result += num
+                if num != 255:
+                    return result
+        ins.seek(8, 1)  # skip uncompressed/compressed size for now
+        self._mastersStart = ins.tell()
+        uncompressed = ''
+        mastersSize = None
+        while True:  # parse and decompress each block here
+            token = unpack_byte(ins)
+            literal_length = token >> 4
+            if literal_length == 15:
+                literal_length += _read_lisc_int()
+            uncompressed += ins.read(literal_length)
+            offset = unpack_short(ins)
+            match_length = token & 0b1111
+            if match_length == 15:
+                match_length += _read_lisc_int()
+            match_length += 4
+            start_pos = len(uncompressed) - offset
+            end_pos = start_pos + match_length
+            while start_pos < end_pos: # matches can be overlapping
+                uncompressed += uncompressed[start_pos:min(start_pos + offset,
+                                                           end_pos)]
+                start_pos += offset
+            # the target size is found in bytes 1-5
+            if mastersSize is None and len(uncompressed) >= 5:
+                mastersSize = struct.unpack('I', uncompressed[1:5])[0]
+            # no need to go on after we hit the size of the table
+            if mastersSize is not None:
+                if len(uncompressed) >= mastersSize + 5:
+                    break
+        # wrap the decompressed data in a file-like object and return it
+        return StringIO.StringIO(uncompressed[1:])
 
     def calc_time(self): pass
 
@@ -227,12 +271,11 @@ class SkyrimSaveHeader(SaveFileHeader):
 
     def load_masters(self, ins):
         if self.version == 12:
-            self.masters = []
-            # TODO: Skyrim SE masters can't be listed without lz4 support
-            return
-        ins.read(1) # drop unknown byte
-        #--Masters
-        self._load_masters_16(ins)
+            self._load_masters_16(self._decompress_masters_sse(ins))
+        else:
+            ins.read(1) # drop unknown byte
+            #--Masters
+            self._load_masters_16(ins)
 
     def calc_time(self):
         # gameDate format: hours.minutes.seconds
