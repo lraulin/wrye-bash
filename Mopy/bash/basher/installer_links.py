@@ -253,7 +253,7 @@ class Installer_Wizard(OneItemLink, _InstallerLink):
             installer.setEspmName(oldName, ret.RenameEspms[oldName])
         idetails.refreshCurrent(installer)
         #Install if necessary
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             if ret.Install:
                 if self._selected_info.isActive: #If it's currently installed, anneal
@@ -281,7 +281,7 @@ class Installer_Wizard(OneItemLink, _InstallerLink):
             bosh.iniInfos.table.setItem(outFile.tail, 'installer',
                                         installer.archive)
             # trigger refresh UI
-            ui_refresh[1] = True
+            ui_refresh[1].add(outFile.tail)
             # We wont automatically apply tweaks to anything other than
             # Oblivion.ini or an ini from this installer
             game_ini = bosh.get_game_ini(iniFile, is_abs=False)
@@ -310,7 +310,7 @@ class Installer_Wizard(OneItemLink, _InstallerLink):
                     target_path.stail, reset_choices=target_updated)
                 BashFrame.iniList.panel.ShowPanel(refresh_target=True,
                     focus_list=False, detail_item=lastApplied)
-            ui_refresh[1] = False
+            ui_refresh[1].clear() # we refreshed no need to re-refresh UI
         if len(manuallyApply) > 0:
             message = balt.fill(_(
                 u'The following INI Tweaks were not automatically applied.  '
@@ -372,7 +372,7 @@ class Installer_Anneal(_InstallLink):
     help = _(u"Anneal all packages.")
 
     def Execute(self):
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             with balt.Progress(_(u"Annealing..."),u'\n'+u' '*60) as progress:
                 self.idata.bain_anneal(self._installables, ui_refresh,
@@ -508,7 +508,7 @@ class Installer_Install(_InstallLink):
 
     @balt.conversation
     def Execute(self):
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             with balt.Progress(_(u'Installing...'),u'\n'+u' '*60) as progress:
                 last = (self.mode == 'LAST')
@@ -687,7 +687,7 @@ class Installer_Uninstall(_InstallLink):
     @balt.conversation
     def Execute(self):
         """Uninstall selected Installers."""
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             with balt.Progress(_(u"Uninstalling..."),u'\n'+u' '*60) as progress:
                 self.idata.bain_uninstall(self._installables, ui_refresh,

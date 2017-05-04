@@ -2252,7 +2252,7 @@ class InstallersData(DataStore):
             mask |= set(installer.data_sizeCrc) # not just destFiles - correct?
         if tweaksCreated:
             self._editTweaks(tweaksCreated)
-            refresh_ui[1] |= bool(tweaksCreated)
+            refresh_ui[1].update(tweaksCreated)
         return tweaksCreated
 
     def __installer_install(self, installer, destFiles, index, progress,
@@ -2260,8 +2260,8 @@ class InstallersData(DataStore):
         sub_progress = SubProgress(progress, index, index + 1)
         data_sizeCrcDate_update, mods, inis = installer.install(destFiles,
                                                                 sub_progress)
-        refresh_ui[0] |= bool(mods)
-        refresh_ui[1] |= bool(inis)
+        refresh_ui[0].update(mods)
+        refresh_ui[1].update(inis)
         # refresh modInfos, iniInfos adding new/modified mods
         from . import modInfos, iniInfos
         for mod in set(mods):
@@ -2373,12 +2373,12 @@ class InstallersData(DataStore):
             #--Delete mods and remove them from load order
             if removedPlugins:
                 from . import modInfos
-                refresh_ui[0] = True
+                refresh_ui[0].update(removedPlugins)
                 modInfos.delete(removedPlugins, recycle=False,
                                 raise_on_master_deletion=False)
             if removedInis:
                 from . import iniInfos
-                refresh_ui[1] = True
+                refresh_ui[1].update(removedInis)
                 iniInfos.delete(removedInis, recycle=False)
         except (bolt.CancelError, bolt.SkipError): ex = sys.exc_info()
         except:
@@ -2403,11 +2403,12 @@ class InstallersData(DataStore):
         files = set(installer.data_sizeCrc)
         # keep those to be removed while not restored by a higher order package
         to_keep = (removes & files) - set(restores)
-        if to_keep: g_path = GPath(installer.archive)
+        g_path = None
         for dest_file in to_keep:
             if installer.data_sizeCrc[dest_file] != \
                     self.data_sizeCrcDate.get(dest_file,(0, 0, 0))[:2]:
                 # restore it from this installer
+                g_path = g_path or GPath(installer.archive)
                 restores[dest_file] = g_path
             else:
                 cede_ownership[installer.archive].add(dest_file)
@@ -2461,8 +2462,8 @@ class InstallersData(DataStore):
             mods, inis = set(), set()
             for k, v in cede_ownership.iteritems():
                 self._update_tables(v, k, mods, inis)
-            refresh_ui[0] |= bool(mods)
-            refresh_ui[1] |= bool(inis)
+            refresh_ui[0].update(mods)
+            refresh_ui[1].update(inis)
         finally:
             self.irefresh(what='NS')
 
@@ -2544,13 +2545,13 @@ class InstallersData(DataStore):
                 full_path.moveTo(destDir.join(filename)) # will drop .ghost
                 if bass.reModExt.search(full_path.s):
                     mods.add(GPath(filename))
-                    refresh_ui[0] = True
                 self.data_sizeCrcDate.pop(filename, None)
                 emptyDirs.add(full_path.head)
             except:
                 # It's not imperative that files get moved, so ignore errors
                 deprint(u'Clean Data: moving %s to % s failed' % (
                             full_path, destDir), traceback=True)
+        refresh_ui[0].update(mods)
         from . import modInfos
         modInfos.delete_refresh(mods, None, check_existence=False)
         for emptyDir in emptyDirs:

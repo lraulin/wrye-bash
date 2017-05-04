@@ -165,7 +165,7 @@ class Installers_MonitorInstall(Installers_Link):
         self.iPanel.ShowPanel()
         # Update the status of the installer (as installer last)
         path = path.relpath(bass.dirs['installers'])
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             self.idata.bain_install([path], ui_refresh, last=True,
                                     override=False)
@@ -199,7 +199,7 @@ class Installers_AnnealAll(Installers_Link):
     @balt.conversation
     def Execute(self):
         """Anneal all packages."""
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             with balt.Progress(_(u"Annealing..."),u'\n'+u' '*60) as progress:
                 self.idata.bain_anneal(None, ui_refresh, progress=progress)
@@ -215,7 +215,7 @@ class Installers_UninstallAllPackages(Installers_Link):
     def Execute(self):
         """Uninstall all packages."""
         if not self._askYes(_(u"Really uninstall All Packages?")): return
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             with balt.Progress(_(u"Uninstalling..."),u'\n'+u' '*60) as progress:
                 self.idata.bain_uninstall('ALL', ui_refresh, progress=progress)
@@ -264,7 +264,7 @@ class Installers_UninstallAllUnknownFiles(Installers_Link):
     @balt.conversation
     def Execute(self):
         if not self._askYes(self.fullMessage): return
-        ui_refresh = [False, False]
+        ui_refresh = [set(), set()]
         try:
             with balt.Progress(_(u"Cleaning Data Files..."),u'\n' + u' ' * 65):
                 self.idata.clean_data_dir(ui_refresh)
