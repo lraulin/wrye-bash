@@ -1190,7 +1190,6 @@ class InstallerArchive(Installer):
         #--Move
         progress(0.9,project.s+u'\n'+_(u'Moving files...'))
         count = 0
-        bolt.clearReadOnly(unpack_dir)
         tempDirJoin = unpack_dir.join
         destDirJoin = destDir.join
         for file_ in files:
