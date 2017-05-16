@@ -1183,7 +1183,7 @@ class InstallerArchive(Installer):
         if not files: return 0
         #--Clear Project
         destDir = bass.dirs['installers'].join(project)
-        if destDir.exists(): destDir.rmtree(safety=u'Installers')
+        destDir.rmtree(safety=u'Installers')
         #--Extract
         progress(0,project.s+u'\n'+_(u'Extracting files...'))
         unpack_dir = self.unpackToTemp(files, SubProgress(progress, 0, 0.9))
