@@ -47,6 +47,8 @@ import traceback
 close_fds = True
 import types
 from binascii import crc32
+from functools import partial
+# Internal
 import bass
 import chardet
 #-- To make commands executed with Popen hidden
@@ -790,13 +792,10 @@ class Path(object):
     @property
     def crc(self):
         """Calculates and returns crc value for self."""
-        size = self.size
         crc = 0L
         with self.open('rb') as ins:
-            insRead = ins.read
-            insTell = ins.tell
-            while insTell() < size:
-                crc = crc32(insRead(512),crc)
+            for block in iter(partial(ins.read, 512), ''):
+                crc = crc32(block,crc)
         return crc & 0xffffffff
 
     #--Path stuff -------------------------------------------------------
