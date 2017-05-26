@@ -30,7 +30,7 @@ import os as _os
 import re as _re
 
 language = None
-AppVersion = u"307" # must represent a valid float
+AppVersion = u"307.201705262232" # must represent a valid float
 bashIni = None
 
 #--Null strings (for default empty byte arrays)
